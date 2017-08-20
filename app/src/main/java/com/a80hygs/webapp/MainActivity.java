@@ -3,14 +3,19 @@ package com.a80hygs.webapp;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Build;
+import android.os.Looper;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.webkit.DownloadListener;
+import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
@@ -35,9 +40,11 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         dWebView = (DWebView) findViewById(R.id.dwebview);
+        dWebView.getSettings().setJavaScriptCanOpenWindowsAutomatically(true);
+        dWebView.setDownloadListener(downloadListener);
         dWebView.setJavascriptInterface(new WebPlugin(dWebView,this));
         dWebView.setWebViewClient(webViewClient);//设置自己webviewclient
-
+        dWebView.getSettings().setAllowFileAccess(true);
 
 
         if (Build.VERSION.SDK_INT>23) {
@@ -52,7 +59,7 @@ public class MainActivity extends AppCompatActivity {
         }else {
             if (ContextCompat.checkSelfPermission(this,
                     Manifest.permission.CAMERA)
-                    != PackageManager.PERMISSION_GRANTED) {
+                    == PackageManager.PERMISSION_GRANTED) {
             } else {
                 //
                 ActivityCompat.requestPermissions(this,
@@ -62,6 +69,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
 
+
 //        file:///android_asset/www/index.html
         dWebView.loadUrl("http://80hygs.com");
 //        dWebView.loadUrl("file:///android_asset/www/index.html");
@@ -69,6 +77,14 @@ public class MainActivity extends AppCompatActivity {
 
 
 
+    private DownloadListener downloadListener=new DownloadListener() {
+        @Override
+        public void onDownloadStart(String s, String s1, String s2, String s3, long l) {
+            Uri uri = Uri.parse(s);
+            Intent intent = new Intent(Intent.ACTION_VIEW, uri);
+            startActivity(intent);
+        }
+    };
 
     @Override
     public void onRequestPermissionsResult(int requestCode,
@@ -97,7 +113,19 @@ public class MainActivity extends AppCompatActivity {
      */
     private WebViewClient webViewClient = new WebViewClient() {
         @Override
+        public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+
+            String url=  request.getUrl().toString();
+            return super.shouldInterceptRequest(view, request);
+        }
+
+
+
+
+        @Override
         public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+
+            Log.i("url 地址",view.getUrl());
             if (Build.VERSION.SDK_INT >= 21) {
                 view.loadUrl(request.getUrl().toString());
             }else
