@@ -13,6 +13,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.webkit.DownloadListener;
+import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
@@ -34,6 +35,7 @@ public class MainActivity extends AppCompatActivity {
     protected DWebView dWebView;
 
     private CompletionHandler completionHandler;
+    private ValueCallback<Uri[]> valueCallback;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,6 +46,7 @@ public class MainActivity extends AppCompatActivity {
         dWebView.setDownloadListener(downloadListener);
         dWebView.setJavascriptInterface(new WebPlugin(dWebView,this));
         dWebView.setWebViewClient(webViewClient);//设置自己webviewclient
+        dWebView.setWebChromeClient(webChromeClient);
         dWebView.getSettings().setAllowFileAccess(true);
 
 
@@ -54,7 +57,8 @@ public class MainActivity extends AppCompatActivity {
             else
             {
 //                this.shouldShowRequestPermissionRationale(Manifest.permission.CAMERA);
-                this.requestPermissions(new String[]{Manifest.permission.CAMERA},1);
+                this.requestPermissions(new String[]{Manifest.permission.CAMERA
+                },1);
             }
         }else {
             if (ContextCompat.checkSelfPermission(this,
@@ -66,6 +70,7 @@ public class MainActivity extends AppCompatActivity {
                         new String[]{Manifest.permission.CAMERA},
                         1);
             }
+
         }
 
 
@@ -108,6 +113,26 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private WebChromeClient webChromeClient=new WebChromeClient(){
+
+
+
+        @Override
+        public boolean onShowFileChooser(WebView webView, ValueCallback<Uri[]> filePathCallback, FileChooserParams fileChooserParams) {
+
+            valueCallback = filePathCallback;
+            Intent intent = new Intent(Intent.ACTION_PICK,
+                    android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+            intent.setType("image/*");//相片类型
+            startActivityForResult(intent, 100);
+//            startActivityForResult(new Intent(Intent.ACTION_PICK),100);
+            return true;
+        }
+    };
+
+
+
+
     /**
      * 自定义web client
      */
@@ -133,6 +158,7 @@ public class MainActivity extends AppCompatActivity {
 
             return super.shouldOverrideUrlLoading(view, request);
         }
+
 
 
 
@@ -164,6 +190,19 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == 100)
+        {
+            if (resultCode == RESULT_OK)
+            {
+                Uri[] uris = new Uri[1];
+                uris[0] = data.getData();
+                valueCallback.onReceiveValue(uris);
+
+                return ;
+            }
+
+        }
         if (requestCode ==ScanActivity.SCANRESULTREQUEST)
         {
             if (resultCode ==1)
